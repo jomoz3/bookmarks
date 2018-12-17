@@ -1,0 +1,22 @@
+#! /usr/local/bin/bash
+
+# NAME: bmls -- List bookmark files.
+# 
+# SYNOPSIS: bmls
+# 
+# DESCRIPTION: List files in bookmarks directory. (Directory name is
+# in BOOKMARKS_DIR.)
+# 
+# TODO: 20181212) Alternate light and dark background colors;
+# 20181212b) Add file specification. (Make case-insensitive, e.g.,
+# bmls *Comp* matches files containing "comp" or "Comp"; 20131212c)
+# Preface files with a number which can then be specified by a
+# subsequent command (bmopen?) to open.
+# 
+# AUTHOR: Jomo Z. <jomoz@me.com>
+# 
+# CREATED: December 12, 2018
+# 
+# LAST UPDATED: December 12, 2018
+
+ls $BOOKMARKS_DIR | sed s/\.webloc$//g

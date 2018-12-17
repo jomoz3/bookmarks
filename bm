@@ -1,0 +1,75 @@
+#! /usr/local/bin/bash
+
+# bm -- Create a bookmark for the front tab of the active window in Vivaldi.
+#
+# USAGE: bm
+#
+# DESCRIPTION: ...
+#
+# TODO: 2) Allow user to specify tags before creating bookmark;
+# perhaps allow tags to be specified as a command-line options; 3)
+# Allow bookmarks to be created from Vivaldi, Safari or
+# Chrome. Specify browser using a command-line options; 3b) Create an
+# environment variable that specifies the default browser to create a
+# bookmark from; 4) Improve output; perhaps create a -verbose option;
+# 5) Create way for bookmark to be created directly from browser; 6)
+# Create environment variable to specify location of bookmarks; 7)
+# Create utility to extact list of tags from all bookmarks; 8) Add
+# command-line completions; 9) Store filename of most recently created
+# tag in variable so that more stuff can be done to it on the command
+# line (e.g., further tagging). 9) Add options to list bookmarks
+# tagged with a certain tag
+#
+# AUTHOR: Jomo Z. <jomoz@me.com>
+#
+# CREATED: November 30, 2018
+#
+# LAST UPDATED: December 16, 2018
+
+# Use current directory to store PDF pages if BOOKMARKS_DIR isn't set
+if [ ! -v BOOKMARKS_DIR ]; then
+    $BOOKMARKS_DIR=$PWD
+    echo "Bookmarks directory (BOOKMARKS_DIR) not specified. \
+    Using $BOOKMARKS_DIR."
+fi
+
+# Get title and URL from active tab of frontmost window in Vivaldi
+title=$( osascript -l JavaScript -e "Application('Vivaldi').windows[0].activeTab.title()" )
+url=$( osascript -l JavaScript -e "Application('Vivaldi').windows[0].activeTab.url()" )
+
+# Set bookmark name to page title, convert to title case
+name=$(echo $title | bmnorm | $SCRIPTS_DIR/util/titleize)
+
+webloc_content=$( cat << ---
+<?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" \
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+      <dict>
+        <key>URL</key>
+        <string>$url</string>
+      </dict>
+    </plist>
+---
+)
+
+# Ask the user to edit the bookmark name
+echo -e "\n\e[4mBookmark Name\e[m:"
+read -e -i "$name" name
+
+echo -n "bmaddtags $name "
+
+# # Ask for tags
+# 
+# echo -e "\n$(bmlisttags)" | fold -s
+# 
+# echo -e "\n\e[4mTags (separate with commas)\e[m:"
+# read -e tags
+# 
+# # Compute bookmark filename
+# filename="$BOOKMARKS_DIR/$name.webloc"
+# 
+# echo -e "\nCreating \e[4m$filename\e[m with tags \e[4m$tags\e[m" | fold -s
+# 
+# echo $webloc_content  > "$filename"
+# tag -a "$tags" "$filename"

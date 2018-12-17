@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+# bmnorm -- Normalize bookmark title to desired style
+# 
+# USAGE: echo *title* | bmnorm
+# 
+# DESCRIPTION: Normalize a bookmark title to preferred style. Reads
+# from STDIN and outputs to STDOUT. Comments in script describe the
+# transformations applied to the title.
+# 
+# TODO: ...
+# 
+# AUTHOR: Jomo Z. <jomoz@me.com>
+# 
+# CREATED: October 28, 2018
+# 
+# LAST UPDATED: December 16, 2018
+
+
+use strict;
+use warnings;
+
+my $bmtitle = <STDIN>;
+
+# Kill tag line for Wikipedia and Wikibooks
+$bmtitle =~ s/(Wikipedia).*|(Wikibooks).*/$+/g;
+
+# Right single quotation mark for single quotes. Smart quotes
+# avoid shell escaping issues!
+$bmtitle =~ s/'/’/g;
+
+# Right single quotation mark for escaped single quotes.
+$bmtitle =~ s/&#39;/’/g;
+
+# Fix capitalization after fixing single quotes
+# Not necessary if using smart quotes?
+# $bmtitle =~ s/'S/'s/g;
+
+# Hypens for em dashes
+$bmtitle =~ s/—/-/g;
+
+# Hyphens for slashes
+$bmtitle =~ s/\// - /;
+
+# Hyphens for colons
+$bmtitle =~ s/:\s/ - /g;
+
+# Hyphens for pipe symbols
+$bmtitle =~ s/\|/-/g;
+
+# Hyphens for bullets
+$bmtitle =~ s/•/-/g;
+
+# Hyphens for another kind of bullet
+$bmtitle =~ s/·/-/g; 
+    
+print $bmtitle;

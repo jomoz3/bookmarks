@@ -1,0 +1,24 @@
+#! /usr/local/bin/bash
+
+# bmlisttags -- Print an inventory of tags used in bookmarks directory
+#
+# USAGE: bmlisttags
+#
+# DESCRIPTION: Print a space-delimited inventory of tags used by files
+# in $BOOKMARKS_DIR
+#
+# AUTHOR: Jomo Z. <jomoz@me.com>
+#
+# CREATED: December 11, 2018
+#
+# LAST UPDATED: December 14, 2018
+
+# List tags for all files in bookmarks directory. Tags for files with
+# multiple tags are listed separated by commas; translate to one tag
+# per line. Sort the tags, get the unique ones, then output a
+# space-separted list.
+tag --no-name $BOOKMARKS_DIR/* |
+    tr "," "\n" |
+    sort |
+    uniq |
+    tr "\n" " "

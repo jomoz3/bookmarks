@@ -1,0 +1,50 @@
+#! /usr/local/bin/bash
+
+# NAME: bmaddtags - Add tags to a bookmark file.
+# 
+# SYNOPSIS: bmaddtags *file* *tag* [tag2] ...
+# 
+# DESCRIPTION: Add tags to a bookmark file, with
+# completion. Completion function is defined in bm.
+# 
+# TODO: T20181213) Add filename expansion for bookmark name.
+# 
+# BUGS: B20181213) Not handling multiword filenames correctly:
+# splitting into individual words, e.g.:
+#
+# bmaddtags architecture bash computer-history 'The New York Times.webloc'
+# Times.webloc not found
+# Usage: bmaddtags tag1 tag2 ... file
+#
+# Not parsing arguments properly; issue is probablu with quoting.
+#
+# AUTHOR: Jomo Z. <jomoz@me.com>
+# 
+# CREATED: December 12, 2018
+# 
+# LAST UPDATED: December 15, 2018
+
+usage="Usage: bmaddtags \e[4mfile\e[m \e[4mtag\e[m [tag2] ... "
+
+# Need at least two arguments: a tag and a filename
+if [ $# -lt 2 ]; then
+    echo -e $usage
+    exit 1
+fi
+
+# File is first argument
+file="$BOOKMARKS_DIR/$1"
+shift
+
+if [ ! -e "$file" ]; then
+    echo "$file not found"
+    echo -e $usage
+    exit 1
+fi
+
+# Massage tags as positional params into comma-separated list
+IFS=','
+tags_csv=$( echo "$*" )
+unset IFS
+
+tag -a $tags_csv "$file"

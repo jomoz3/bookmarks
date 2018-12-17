@@ -1,0 +1,75 @@
+#! /usr/local/bin/bash
+
+# NAME: bmread - Roll-yer-own read
+# 
+# SYNOPSIS: ...
+# 
+# DESCRIPTION: ...
+# 
+# TODO: ...
+#
+# REFERENCES:
+#
+# [1] Chet Ramey and Brian Fox, The GNU Bash Reference Manual, Edition
+# 4.4 for Bash Version 4.4. Free Software Foundation, 7 September
+# 2016.
+# 
+# AUTHOR: Jomo Z. <jomoz@me.com>
+# 
+# CREATED: December 15, 2018
+# 
+# LAST UPDATED: December 16, 2018
+
+words=( bluejay cardinal chickadee duck flicker goose heron junco sparrow )
+
+echo -n 'Bird: '
+
+# Input loop: Read one character at a time
+while read -s -N 1 inchar; do
+    case $(code $inchar) in
+	127)
+	    # Delete: If not at beginning of line, delete a character
+	    # on terminal and drop last character of input string
+	    if [ $charnum -gt 0 ]; then
+		echo -en "\b \b"
+		# Drop last character. Space before -1 is
+		# required. See Ramey and Fox [1, p. 24].
+		instring=${instring:0: -1}
+	    	(( charnum-- ))
+	    fi
+	    ;;
+	*)
+	    # Default: Display charcter on terminal and add to input string
+	    echo -en "$inchar"
+	    instring+=$inchar
+	    (( charnum++ ))
+	    ;;
+    esac
+    for word in ${words[@]}; do
+	# Take the first few characters of each word to be matched
+	# equal to the length of the input string. If they match,
+	# print the remainder (completion) of the word in a dimmer color.
+	if [ "${word:0:${#instring}}" = "$instring" ]; then
+	    prev_match=$match
+	    match=$word
+	    # If current match is shorter than last one, overwrite
+	    # some spaces to "white out" the previous one
+	    (( len_diff=${#prev_match} - ${#match} ))
+	    if [ $len_diff -gt 0 ]; then
+		strx ' ' $len_diff
+		strx '\b' $len_diff
+	    fi
+	    comp_word=${match:${#instring}}
+	    echo -en "\e[31m$comp_word\e[m"
+	    strx '\b' ${#comp_word}
+	    break
+	fi
+    done
+done
+
+exit
+
+dd () {
+    local msg=$1
+    osascript -e "display dialog \"$msg\""
+}
