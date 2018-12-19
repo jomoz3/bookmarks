@@ -1,75 +1,186 @@
 #! /usr/local/bin/bash
 
-# NAME: bmread - Roll-yer-own read
+# NAME: bmread -- Roll-yer-own read
 # 
 # SYNOPSIS: ...
 # 
-# DESCRIPTION: ...
+# DESCRIPTION: Replacement for read/readline that supports completion
 # 
-# TODO: ...
+# TODO --
 #
-# REFERENCES:
+# 1219a) Migrate cursor movement to a function -- for clarity and also to
+# be able to handle trying to move zero spaces properly.
 #
-# [1] Chet Ramey and Brian Fox, The GNU Bash Reference Manual, Edition
-# 4.4 for Bash Version 4.4. Free Software Foundation, 7 September
-# 2016.
-# 
 # AUTHOR: Jomo Z. <jomoz@me.com>
 # 
 # CREATED: December 15, 2018
 # 
-# LAST UPDATED: December 16, 2018
+# LAST UPDATED: December 18, 2018
 
-words=( bluejay cardinal chickadee duck flicker goose heron junco sparrow )
+# .......|10.......|20.......|30.......|40.......|50.......|60.......|70.......|
 
-echo -n 'Bird: '
+# INITIALIZATION --
 
-# Input loop: Read one character at a time
-while read -s -N 1 inchar; do
-    case $(code $inchar) in
-	127)
-	    # Delete: If not at beginning of line, delete a character
-	    # on terminal and drop last character of input string
-	    if [ $charnum -gt 0 ]; then
-		echo -en "\b \b"
-		# Drop last character. Space before -1 is
-		# required. See Ramey and Fox [1, p. 24].
-		instring=${instring:0: -1}
-	    	(( charnum-- ))
+# Array of words to match user input against
+match_candidates=( bluejay cardinal chickadee duck flicker goose heron junco sparrow )
+
+# Input prompt
+prompt='Bird: '
+
+# ANSI sequence to style user input
+prompt_ansi=''
+
+# ANSI sequence to use to style completion; uncomment the one you want
+# comp_ansi='4'        # Underline
+comp_ansi='36'         # Cyan
+
+# Valid characters
+valid_input_chars='[-a-zA-Z0-9_\.]'
+
+# Strings to open and close ANSI escape sequences and to reset styling
+# to normal
+ansi_open='\e['
+ansi_close='m'
+ansi_reset='0'
+ansi_left='D'
+ansi_right='C'
+
+# MAIN --
+
+# Display input prompt; quotes necessary to preserve trailing space
+echo -ne "$prompt"
+
+# Input loop
+# Read a character and respond appropriately
+
+while read -s -N 1 read_char; do  # Don't echo input; read one character
+
+    # ASCII code for character; quotes necessary to preserve space in
+    # prompt, if present
+    read_char_code=$(code "$read_char")
+
+    if [[ $read_char =~ $valid_input_chars ]]; then
+
+	# Valid character: Add to input string, increment
+	# cursor position
+
+	input_string+=$read_char
+	let input_pos++
+
+    elif [[ $read_char_code == 127 && $input_pos > 0 ]]; then
+
+	# Backspace, not at beginning of line: Drop last character
+	# from input string and decrement cursor position
+
+	input_string=${input_string:0: -1}
+	let input_pos--
+
+    elif [[ $read_char_code == 27 ]]; then
+
+	# Keystroke represented by escape sequence (e.g., cursor keys,
+	# function keys): Get following two characters to identify key
+	# pressed.
+	
+	read -s -N 2 input_ansi_seq
+
+	# TODO: Do something with the sequence
+	
+    fi
+    
+    unset match comp
+
+    # If user has entered something, look for a completion
+
+    if [[ $input_string ]]; then
+
+	# Loop through match candidates. Compare first few characters
+	# of each, equal to the length of the input string, to the
+	# input string. If they're the same, store the full word
+	# matched.
+
+	for match_candidate in ${match_candidates[@]}; do
+	    if [[ ${match_candidate:0:${#input_string}} == $input_string ]]; then
+		match=$match_candidate
+		comp=${match:${#input_string}}
+		break
 	    fi
-	    ;;
-	*)
-	    # Default: Display charcter on terminal and add to input string
-	    echo -en "$inchar"
-	    instring+=$inchar
-	    (( charnum++ ))
-	    ;;
-    esac
-    for word in ${words[@]}; do
-	# Take the first few characters of each word to be matched
-	# equal to the length of the input string. If they match,
-	# print the remainder (completion) of the word in a dimmer color.
-	if [ "${word:0:${#instring}}" = "$instring" ]; then
-	    prev_match=$match
-	    match=$word
-	    # If current match is shorter than last one, overwrite
-	    # some spaces to "white out" the previous one
-	    (( len_diff=${#prev_match} - ${#match} ))
-	    if [ $len_diff -gt 0 ]; then
-		strx ' ' $len_diff
-		strx '\b' $len_diff
-	    fi
-	    comp_word=${match:${#instring}}
-	    echo -en "\e[31m$comp_word\e[m"
-	    strx '\b' ${#comp_word}
-	    break
+	done
+
+    fi
+
+    # Determine output code (code to echo to display input string plus
+    # completion, if identified). If needed, pad the output with extra
+    # spaces to equal the length of the previous output (so the tail
+    # of the previous completion doesn't remain visible).
+
+    # Let's check if the input text has changed. If it has, we need to
+    # update the display.
+
+    if [[ $input_string != $input_string_prev ]]; then
+
+	output_text=${input_string}${comp}  # If there's a completion, equivalent to $match
+	output_code=${input_string}${ansi_open}${comp_ansi}${ansi_close}${comp}${ansi_open}${ansi_reset}${ansi_close}
+
+    # If new output text is shorter than previous output text, pad
+    # output code with extra spaces so it overwrites all of the
+    # previous text
+
+	if [[ (( ${#output_text} < ${#output_text_prev} )) ]]; then
+	    output_code+=$( strx ' ' $(( ${#output_text_prev} - ${#output_text} )) )
 	fi
-    done
+
+    fi
+
+    # Note: \e[0D == \e[1D; i.e., in \e[ND, even if N = 0, you still get one backspace
+
+    # If output text has changed, move cursor to beginning of input
+    # area and re-output/redraw it. Test to see whether the previous output text isn't
+    # null, though, because trying to move the cursor zero spaces
+    # using the ANSI escapes still results in the cursor moving one
+    # space.
+
+    # Debug
+    echo -e "\n"
+
+    if [[ $output_text_prev ]]; then
+
+	echo "There's previous output text; moving cursor left ${#output_text_prev} characters"
+	echo -en "${ansi_open}${#output_text_prev}${ansi_left}"  # E.g., "\e[5D" moves cursor left 5 spaces; see TODO 1219a
+
+    fi
+
+    # Write out updated code
+    echo "Outputting output code |$output_code|"
+    echo -en "$output_code"
+
+    # Move cursor back to end of input string
+
+    if [[ $comp ]]; then
+	echo -e "\nThere's a completion; moving cursor left ${#comp} characters"
+	echo -en "${ansi_open}${#comp}${ansi_left}"
+    fi
+	
+    # Debug
+    echo -e "\nread_char: $read_char"
+    echo "read_char_code: $read_char_code"
+    echo "input_string: |$input_string|"
+    echo "input_pos: $input_pos"
+    echo "match: $match"
+    echo "comp: $comp"
+    echo "output_text: |$output_text|"
+    echo "output_text_prev: |$output_text_prev|"
+
+    # At this point, we need to record the current input string, so we
+    # can tell whether it has changed and therefore the display needs
+    # to be updated; and the full output text (input string +
+    # completion, which is also the match -- but only if one has been
+    # indentified) so we can be sure to overwrite the entire thing if
+    # the new output text is shorter than the old. Note that these are
+    # independent: The input string can change (and so the display
+    # need to be updated) without the full output text changing (if
+    # the match hasn't changed). That's why we need to record both.
+
+    input_string_prev=$input_string
+    output_text_prev=$output_text
+
 done
-
-exit
-
-dd () {
-    local msg=$1
-    osascript -e "display dialog \"$msg\""
-}

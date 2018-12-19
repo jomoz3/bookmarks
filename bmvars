@@ -1,0 +1,32 @@
+#! /usr/local/bin/bash
+
+# NAME: bmvars -- Variables used in bmread
+# 
+# DESCRIPTION: Variables used in bmread
+# 
+# AUTHOR: Jomo Z. <jomoz@me.com>
+# 
+# CREATED: December 18, 2018
+# 
+# LAST UPDATED: December 18, 2018
+
+# .......|10.......|20.......|30.......|40.......|50.......|60.......|70.......|
+
+# VARIABLES --
+
+completion=                  # Completion (matched string minus input string)
+completion_ansi=             # ANSI sequence used to style completion
+input_ansi_seq=              # ANSI sequence representing extended characters (e.g., arrow keys, function keys) not including leading escape character
+input_pos=                   # Position of point (cursor) in input string (without cursor movement, same as length of input string)
+input_string=                # String the user has input (after all edits have been incorporated)
+match=                       # Full string matched to input string
+match_candidate=             # Candidate word match for input string
+match_candidates=            # Array of words to match user input against
+out_text_prev=               # Previous output string
+output_code=                 # String to print to terminal to update display (including special characters)
+output_text=                 # The string being displayed (without ANSI codes)
+prompt=                      # Input prompt
+prompt_ansi=                 # ANSI sequence used to style prompt
+read_char=                   # Character typed by the user
+read_char_code=              # Code for character typed by user
+valid_input_chars=           # Regex matching valid characters
